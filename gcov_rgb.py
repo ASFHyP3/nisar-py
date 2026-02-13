@@ -63,6 +63,66 @@ def calculate_color_channel(
     return color_channel
 
 
+def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
+    output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
+
+    if output_geotiff.exists():
+        print(f'Skipping (exists): already Exists {output_geotiff.name}')
+        return
+
+    gcov = open_product(gcov_product)
+    if frequency not in gcov.frequencies:
+        print(f'Skipping (frequency): {gcov_product.stem} does not have frequency {frequency}')
+        return
+
+    pol_names = _get_polarization_names(gcov.polarizations[frequency])
+
+    if pol_names is None:
+        print(f'Skipping (single-pol): {gcov_product.stem}')
+        return
+
+    print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
+    co_pol_name, cross_pol_name = pol_names
+    co_pol = gcov.getImageDataset(frequency=frequency, polarization=co_pol_name)[:, :]
+    cross_pol = gcov.getImageDataset(frequency=frequency, polarization=cross_pol_name)[:, :]
+    co_pol = prepare_geotif_data(co_pol)
+    cross_pol = prepare_geotif_data(cross_pol)
+
+    # create an RGB raster in memory
+    grid = gcov.getGeoGridParameters(frequency=frequency, polarization=co_pol_name)
+
+    driver = gdal.GetDriverByName('MEM')
+    raster = driver.Create('', grid.width, grid.length, 3, gdal.GDT_Byte)
+
+    geotransform = (grid.start_x, grid.spacing_x, 0, grid.start_y, 0, grid.spacing_y)
+    raster.SetGeoTransform(geotransform)
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(grid.epsg)
+    raster.SetProjection(srs.ExportToWkt())
+
+    for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
+        color_channel = calculate_color_channel(co_pol, cross_pol, color=color)
+        raster.GetRasterBand(band_idx).WriteArray(color_channel)
+        raster.GetRasterBand(band_idx).SetNoDataValue(0)
+
+    # write RGB raster to disk as a cloud optimized geotiff
+    gdal.GetDriverByName('COG').CreateCopy(
+        output_geotiff,
+        raster,
+        options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST']
+    )
+
+
+def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
+    if 'HH' in pols and 'HV' in pols:
+        return 'HHHH', 'HVHV'
+    elif 'VV' in pols and 'VH' in pols:
+        return 'VVVV', 'VHVH'
+    else:
+        return None
+
+
 def main():
     gcov_dir = Path.home() / 'Data' / 'nisar' / 'gcov'
     output_dir = Path.cwd() / 'rgb_decomps'
@@ -72,60 +132,8 @@ def main():
         if gcov_path.is_dir():
             continue
 
-        gcov = open_product(gcov_path)
-        for frequency in gcov.frequencies:
-            output_decomp = output_dir / f'rgb_{gcov_path.stem}_{frequency}.tiff'
-            print(gcov.polarizations)
-            print(f'Processing {output_decomp.name}')
-            if output_decomp.exists():
-                continue
-
-            print(f'Generating rgb for freq {frequency} for {gcov_path.name}')
-            co_pol_key, cross_pol_key = _get_polarization_keys(gcov.polarizations[frequency])
-
-            if co_pol_key is None:
-                print(f'Skipping single-pol: {gcov_path.stem}')
-                continue
-
-            # co_pol, cross_pol
-            co_pol = gcov.getImageDataset(frequency=frequency, polarization=co_pol_key)[:, :]
-            cross_pol = gcov.getImageDataset(frequency=frequency, polarization=cross_pol_key)[:, :]
-            co_pol = prepare_geotif_data(co_pol)
-            cross_pol = prepare_geotif_data(cross_pol)
-
-            # create an RGB raster in memory
-            grid = gcov.getGeoGridParameters(frequency=frequency, polarization=co_pol_key)
-
-            driver = gdal.GetDriverByName('MEM')
-            raster = driver.Create('', grid.width, grid.length, 3, gdal.GDT_Byte)
-
-            geotransform = (grid.start_x, grid.spacing_x, 0, grid.start_y, 0, grid.spacing_y)
-            raster.SetGeoTransform(geotransform)
-
-            srs = osr.SpatialReference()
-            srs.ImportFromEPSG(grid.epsg)
-            raster.SetProjection(srs.ExportToWkt())
-
-            for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
-                color_channel = calculate_color_channel(co_pol, cross_pol, color=color)
-                raster.GetRasterBand(band_idx).WriteArray(color_channel)
-                raster.GetRasterBand(band_idx).SetNoDataValue(0)
-
-            # write RGB raster to disk as a cloud optimized geotiff
-            gdal.GetDriverByName('COG').CreateCopy(
-                output_dir / f'rgb_{gcov_path.stem}_{frequency}.tiff',
-                raster,
-                options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST']
-            )
-
-
-def _get_polarization_keys(pols):
-    if 'HH' in pols and 'HV' in pols:
-        return 'HHHH', 'HVHV'
-    elif 'VV' in pols and 'VH' in pols:
-        return 'VVVV', 'VHVH'
-    else:
-        return None, None
+        for frequency in ('A', 'B'):
+            make_rgb_geotiff(gcov_path, output_dir, frequency)
 
 
 if __name__ == '__main__':
