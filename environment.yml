@@ -1,0 +1,7 @@
+name: nisar_rgb
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - isce3
+  - libgdal-hdf5
