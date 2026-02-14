@@ -3,66 +3,44 @@ from pathlib import Path
 
 from osgeo import gdal, osr
 from nisar.products.readers import open_product
+from memory_profiler import profile
 
 
 def prepare_geotif_data(data: np.ndarray) -> np.ndarray:
-    data = np.nan_to_num(data)
+    data = np.nan_to_num(data, copy=False)
     data[data < pow(10.0, -48.0 / 10.0)] = 0.0
     return data
 
 
 def calculate_color_channel(
-    copol_data: np.ndarray, crosspol_data: np.ndarray, color: str, threshold: float=-24, scale_factor: float=254.0
+        copol: np.ndarray, crosspol: np.ndarray, color: str, threshold: float=-24, scale_factor: float=254.0
 ):
-    """Calculate color channel values for the RGB decomposition of copol and crosspol data
+    power_threshold = 10.0 ** (threshold / 10.0)
+    below_threshold_mask = crosspol < power_threshold
 
-    Args:
-        copol_data: copol data
-        crosspol_data: crosspol data
-        threshold: decomposition threshold value in db
-        scale_factor: scale data by this factor
-        color: the color channel to calculate
-
-    Returns:
-        color_channel: color channel data
-    """
-
-    power_threshold = pow(10.0, threshold / 10.0)  # db to power
-    below_threshold_mask = crosspol_data < power_threshold
-
-    # I don't know what 'zp' is...
-    zp = np.arctan(np.sqrt(np.clip(copol_data - crosspol_data, 0, None))) * 2.0 / np.pi
-    zp[~below_threshold_mask] = 0
+    zp = np.arctan(np.sqrt(np.clip(copol - crosspol, 0, None))) * (2.0 / np.pi)
+    zp[~below_threshold_mask] = 0.0
 
     if color == 'red':
-        z_constant = 1.0
-        color_term = 2.0 * np.sqrt(np.clip(copol_data - 3.0 * crosspol_data, 0, None))
-        color_term[below_threshold_mask] = 0.0
-
+        channel = 2.0 * np.sqrt(np.clip(copol - 3.0 * crosspol, 0, None))
+        channel[below_threshold_mask] = 0.0
+        channel += zp
     elif color == 'green':
-        z_constant = 2.0
-        color_term = 3.0 * np.sqrt(crosspol_data)
-        color_term[below_threshold_mask] = 0.0
-
+        channel = 3.0 * np.sqrt(crosspol)
+        channel[below_threshold_mask] = 0.0
+        channel += 2.0 * zp
     elif color == 'blue':
-        z_constant = 5.0
-        color_term = np.zeros(copol_data.shape)
+        channel = 5.0 * zp
 
-    else:
-        raise ValueError(f'Unknown color {color}, pick red, green, or blue')
+    channel = channel * scale_factor + 1.0
 
-    # Find all our no data and bad data pixels
-    # NOTE: we're using crosspol here because it will typically have the most bad
-    # data and we want the same mask applied to all 3 channels (otherwise, we'll
-    # accidentally be changing colors from intended)
-    invalid_crosspol_mask = ~(crosspol_data > 0)
+    invalid_crosspol_mask = ~(crosspol > 0)
+    channel[invalid_crosspol_mask] = 0.0
 
-    color_channel = 1.0 + (color_term + z_constant * zp) * scale_factor
-    color_channel[invalid_crosspol_mask] = 0
-
-    return color_channel
+    return channel
 
 
+@profile
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
     output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
 
@@ -75,21 +53,19 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
         print(f'Skipping (frequency): {gcov_product.stem} does not have frequency {frequency}')
         return
 
-    pol_names = _get_polarization_names(gcov.polarizations[frequency])
+    polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
-    if pol_names is None:
+    if polarizations  is None:
         print(f'Skipping (single-pol): {gcov_product.stem}')
         return
 
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
-    co_pol_name, cross_pol_name = pol_names
-    co_pol = gcov.getImageDataset(frequency=frequency, polarization=co_pol_name)[:, :]
-    cross_pol = gcov.getImageDataset(frequency=frequency, polarization=cross_pol_name)[:, :]
-    co_pol = prepare_geotif_data(co_pol)
-    cross_pol = prepare_geotif_data(cross_pol)
+    copol_name, crosspol_name = polarizations
+    copol = gcov.getImageDataset(frequency=frequency, polarization=copol_name)[:, :]
+    crosspol = gcov.getImageDataset(frequency=frequency, polarization=crosspol_name)[:, :]
 
     # create an RGB raster in memory
-    grid = gcov.getGeoGridParameters(frequency=frequency, polarization=co_pol_name)
+    grid = gcov.getGeoGridParameters(frequency=frequency, polarization=copol_name)
 
     driver = gdal.GetDriverByName('MEM')
     raster = driver.Create('', grid.width, grid.length, 3, gdal.GDT_Byte)
@@ -101,9 +77,12 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
     srs.ImportFromEPSG(grid.epsg)
     raster.SetProjection(srs.ExportToWkt())
 
+    copol = prepare_geotif_data(copol)
+    crosspol = prepare_geotif_data(crosspol)
+
     for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
-        color_channel = calculate_color_channel(co_pol, cross_pol, color=color)
-        raster.GetRasterBand(band_idx).WriteArray(color_channel)
+        channel = calculate_color_channel(copol, crosspol, color)
+        raster.GetRasterBand(band_idx).WriteArray(channel)
         raster.GetRasterBand(band_idx).SetNoDataValue(0)
 
     # write RGB raster to disk as a cloud optimized geotiff
@@ -129,11 +108,15 @@ def main():
     output_dir.mkdir(exist_ok=True)
 
     for gcov_path in gcov_dir.iterdir():
+
         if gcov_path.is_dir():
+            continue
+        if gcov_path.name != 'NISAR_L2_PR_GCOV_004_076_A_022_2005_QPDH_A_20251103T110514_20251103T110549_X05007_N_F_J_002.h5':
             continue
 
         for frequency in ('A', 'B'):
             make_rgb_geotiff(gcov_path, output_dir, frequency)
+            return
 
 
 if __name__ == '__main__':
