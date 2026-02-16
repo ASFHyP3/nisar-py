@@ -1,7 +1,17 @@
-name: nisar_rgb
+name: nisar-py
 channels:
   - conda-forge
   - nodefaults
 dependencies:
+  - python>=3.10
+  - pip
+  # For packaging, and testing
+  - setuptools_scm
+  - pytest
+  - pytest-console-scripts
+  - pytest-cov
+  # For running
   - isce3
   - libgdal-hdf5
+  - pip:
+      - -r requirements-static.txt
