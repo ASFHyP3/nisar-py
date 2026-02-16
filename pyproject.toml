@@ -38,14 +38,13 @@ develop = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ASFHyP3/nisar-py" # TODO confirm
+Homepage = "https://github.com/ASFHyP3/nisar-py"
 Documentation = "https://nisar-docs.asf.alaska.edu" # TODO confirm
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-script_launch_mode = "subprocess" # TODO confirm
+script_launch_mode = "subprocess"
 
-# TODO confirm
 [tool.setuptools]
 include-package-data = true
 zip-safe = false
