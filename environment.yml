@@ -8,7 +8,6 @@ dependencies:
   # For packaging, and testing
   - setuptools_scm
   - pytest
-  - pytest-console-scripts
   - pytest-cov
   # For running
   - isce3
