@@ -8,6 +8,7 @@ from nisar.products.readers import open_product
 from osgeo import gdal, osr
 
 
+# TODO: remove if not needed
 # from memory_profiler import profile
 
 
@@ -54,6 +55,7 @@ def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
         return None
 
 
+# TODO: remove if not needed
 # @profile
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
     """Create RGB GeoTIFF from GCOV product."""
@@ -118,6 +120,7 @@ def main() -> None:
 
     make_rgb_geotiff(args.gcov_path, args.output_path, args.frequency)
 
+    # TODO: remove if not needed
     # gcov_dir = Path.home() / 'Data' / 'nisar' / 'gcov'
     # output_dir = Path.cwd() / 'rgb_decomps'
     # output_dir.mkdir(exist_ok=True)
