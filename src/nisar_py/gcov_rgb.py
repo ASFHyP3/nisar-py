@@ -104,14 +104,13 @@ def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('gcov_path', type=Path, help='Path to GCOV .h5 file')
-    parser.add_argument('output_dir', type=Path, help='Path to output dir', default=Path.cwd() / 'rgb_decomps')
+    parser.add_argument('output_path', type=Path, help='Path to output dir', default=Path.cwd() / 'rgb_decomps')
+    parser.add_argument('frequency', choices=('A', 'B'))
     args = parser.parse_args()
 
-    args.output_dir.mkdir(exist_ok=True)
+    args.output_path.mkdir(exist_ok=True)
 
-    # for frequency in ('A', 'B'):
-    for frequency in ('A',):
-        make_rgb_geotiff(args.gcov_path, args.output_dir, frequency)
+    make_rgb_geotiff(args.gcov_path, args.output_path, args.frequency)
 
     # gcov_dir = Path.home() / 'Data' / 'nisar' / 'gcov'
     # output_dir = Path.cwd() / 'rgb_decomps'
