@@ -8,10 +8,6 @@ from nisar.products.readers import open_product
 from osgeo import gdal, osr
 
 
-# TODO: remove if not needed
-# from memory_profiler import profile
-
-
 def _prepare_geotif_data(data: np.ndarray) -> np.ndarray:
     data = np.nan_to_num(data, copy=False)
     data[data < pow(10.0, -48.0 / 10.0)] = 0.0
@@ -55,8 +51,6 @@ def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
         return None
 
 
-# TODO: remove if not needed
-# @profile
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
     """Create RGB GeoTIFF from GCOV product."""
     output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
@@ -119,22 +113,6 @@ def main() -> None:
     args.output_path.mkdir(exist_ok=True)
 
     make_rgb_geotiff(args.gcov_path, args.output_path, args.frequency)
-
-    # TODO: remove if not needed
-    # gcov_dir = Path.home() / 'Data' / 'nisar' / 'gcov'
-    # output_dir = Path.cwd() / 'rgb_decomps'
-    # output_dir.mkdir(exist_ok=True)
-    #
-    # for gcov_path in gcov_dir.iterdir():
-    #
-    #     if gcov_path.is_dir():
-    #         continue
-    #     if gcov_path.name != 'NISAR_L2_PR_GCOV_004_076_A_022_2005_QPDH_A_20251103T110514_20251103T110549_X05007_N_F_J_002.h5':
-    #         continue
-    #
-    #     for frequency in ('A', 'B'):
-    #         make_rgb_geotiff(gcov_path, output_dir, frequency)
-    #         return
 
 
 if __name__ == '__main__':
