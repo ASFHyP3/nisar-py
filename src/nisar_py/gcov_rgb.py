@@ -1,21 +1,25 @@
+"""Create RGB image from GCOV product."""
+
 import argparse
-import numpy as np
 from pathlib import Path
 
-from osgeo import gdal, osr
+import numpy as np
 from nisar.products.readers import open_product
+from osgeo import gdal, osr
+
+
 # from memory_profiler import profile
 
 
-def prepare_geotif_data(data: np.ndarray) -> np.ndarray:
+def _prepare_geotif_data(data: np.ndarray) -> np.ndarray:
     data = np.nan_to_num(data, copy=False)
     data[data < pow(10.0, -48.0 / 10.0)] = 0.0
     return data
 
 
-def calculate_color_channel(
+def _calculate_color_channel(
     copol: np.ndarray, crosspol: np.ndarray, color: str, threshold: float = -24, scale_factor: float = 254.0
-):
+) -> np.ndarray:
     power_threshold = 10.0 ** (threshold / 10.0)
     below_threshold_mask = crosspol < power_threshold
 
@@ -41,24 +45,32 @@ def calculate_color_channel(
     return channel
 
 
+def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
+    if 'HH' in pols and 'HV' in pols:
+        return 'HHHH', 'HVHV'
+    elif 'VV' in pols and 'VH' in pols:
+        return 'VVVV', 'VHVH'
+    else:
+        return None
+
+
 # @profile
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
+    """Create RGB GeoTIFF from GCOV product."""
     output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
 
     if output_geotiff.exists():
         print(f'Skipping (exists): already Exists {output_geotiff.name}')
-        return
+        return output_geotiff
 
     gcov = open_product(gcov_product)
     if frequency not in gcov.frequencies:
-        print(f'Skipping (frequency): {gcov_product.stem} does not have frequency {frequency}')
-        return
+        raise ValueError(f'Skipping (frequency): {gcov_product.stem} does not have frequency {frequency}')
 
     polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
     if polarizations is None:
-        print(f'Skipping (single-pol): {gcov_product.stem}')
-        return
+        raise ValueError(f'Skipping (single-pol): {gcov_product.stem}')
 
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
     copol_name, crosspol_name = polarizations
@@ -78,11 +90,11 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
     srs.ImportFromEPSG(grid.epsg)
     raster.SetProjection(srs.ExportToWkt())
 
-    copol = prepare_geotif_data(copol)
-    crosspol = prepare_geotif_data(crosspol)
+    copol = _prepare_geotif_data(copol)
+    crosspol = _prepare_geotif_data(crosspol)
 
     for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
-        channel = calculate_color_channel(copol, crosspol, color)
+        channel = _calculate_color_channel(copol, crosspol, color)
         raster.GetRasterBand(band_idx).WriteArray(channel)
         raster.GetRasterBand(band_idx).SetNoDataValue(0)
 
@@ -91,18 +103,12 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
         output_geotiff, raster, options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST']
     )
 
-
-def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
-    if 'HH' in pols and 'HV' in pols:
-        return 'HHHH', 'HVHV'
-    elif 'VV' in pols and 'VH' in pols:
-        return 'VVVV', 'VHVH'
-    else:
-        return None
+    return output_geotiff
 
 
-def main():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+def main() -> None:
+    """Create RGB image from GCOV product."""
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('gcov_path', type=Path, help='Path to GCOV .h5 file')
     parser.add_argument('output_path', type=Path, help='Path to output dir', default=Path.cwd() / 'rgb_decomps')
     parser.add_argument('frequency', choices=('A', 'B'))
