@@ -1,9 +1,10 @@
+import argparse
 import numpy as np
 from pathlib import Path
 
 from osgeo import gdal, osr
 from nisar.products.readers import open_product
-from memory_profiler import profile
+# from memory_profiler import profile
 
 
 def prepare_geotif_data(data: np.ndarray) -> np.ndarray:
@@ -13,7 +14,7 @@ def prepare_geotif_data(data: np.ndarray) -> np.ndarray:
 
 
 def calculate_color_channel(
-        copol: np.ndarray, crosspol: np.ndarray, color: str, threshold: float=-24, scale_factor: float=254.0
+    copol: np.ndarray, crosspol: np.ndarray, color: str, threshold: float = -24, scale_factor: float = 254.0
 ):
     power_threshold = 10.0 ** (threshold / 10.0)
     below_threshold_mask = crosspol < power_threshold
@@ -40,7 +41,7 @@ def calculate_color_channel(
     return channel
 
 
-@profile
+# @profile
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
     output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
 
@@ -55,7 +56,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
 
     polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
-    if polarizations  is None:
+    if polarizations is None:
         print(f'Skipping (single-pol): {gcov_product.stem}')
         return
 
@@ -87,9 +88,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
 
     # write RGB raster to disk as a cloud optimized geotiff
     gdal.GetDriverByName('COG').CreateCopy(
-        output_geotiff,
-        raster,
-        options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST']
+        output_geotiff, raster, options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST']
     )
 
 
@@ -103,20 +102,31 @@ def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
 
 
 def main():
-    gcov_dir = Path.home() / 'Data' / 'nisar' / 'gcov'
-    output_dir = Path.cwd() / 'rgb_decomps'
-    output_dir.mkdir(exist_ok=True)
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('gcov_path', type=Path, help='Path to GCOV .h5 file')
+    parser.add_argument('output_dir', type=Path, help='Path to output dir', default=Path.cwd() / 'rgb_decomps')
+    args = parser.parse_args()
 
-    for gcov_path in gcov_dir.iterdir():
+    args.output_dir.mkdir(exist_ok=True)
 
-        if gcov_path.is_dir():
-            continue
-        if gcov_path.name != 'NISAR_L2_PR_GCOV_004_076_A_022_2005_QPDH_A_20251103T110514_20251103T110549_X05007_N_F_J_002.h5':
-            continue
+    # for frequency in ('A', 'B'):
+    for frequency in ('A',):
+        make_rgb_geotiff(args.gcov_path, args.output_dir, frequency)
 
-        for frequency in ('A', 'B'):
-            make_rgb_geotiff(gcov_path, output_dir, frequency)
-            return
+    # gcov_dir = Path.home() / 'Data' / 'nisar' / 'gcov'
+    # output_dir = Path.cwd() / 'rgb_decomps'
+    # output_dir.mkdir(exist_ok=True)
+    #
+    # for gcov_path in gcov_dir.iterdir():
+    #
+    #     if gcov_path.is_dir():
+    #         continue
+    #     if gcov_path.name != 'NISAR_L2_PR_GCOV_004_076_A_022_2005_QPDH_A_20251103T110514_20251103T110549_X05007_N_F_J_002.h5':
+    #         continue
+    #
+    #     for frequency in ('A', 'B'):
+    #         make_rgb_geotiff(gcov_path, output_dir, frequency)
+    #         return
 
 
 if __name__ == '__main__':

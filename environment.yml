@@ -12,6 +12,7 @@ dependencies:
   # For running
   - isce3
   - libgdal-hdf5
+  - numpy
   - pip:
       - -r requirements.txt
       - -r requirements-static.txt
