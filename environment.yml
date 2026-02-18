@@ -13,6 +13,7 @@ dependencies:
   - isce3
   - libgdal-hdf5
   - numpy
+  - pystac
   - pip:
       - -r requirements.txt
       - -r requirements-static.txt
