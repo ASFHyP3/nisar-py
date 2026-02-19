@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nisar_py"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 authors = [
     {name="ASF Tools Team", email="UAF-asf-apd@alaska.edu"},
 ]
@@ -21,7 +21,6 @@ classifiers=[
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     # TODO: insert Python dependencies as list here
