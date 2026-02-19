@@ -22,9 +22,8 @@ classifiers=[
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dependencies = [
-    # TODO: insert Python dependencies as list here
-]
+# FIXME: isce3 is not pip-installable, so dependencies may not serve a purpose here
+# dependencies = []
 dynamic = ["version"]
 
 [project.optional-dependencies]
@@ -38,7 +37,6 @@ develop = [
 
 [project.urls]
 Homepage = "https://github.com/ASFHyP3/nisar-py"
-Documentation = "https://nisar-docs.asf.alaska.edu" # TODO confirm
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
