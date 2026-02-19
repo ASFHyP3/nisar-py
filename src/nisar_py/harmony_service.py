@@ -1,3 +1,5 @@
+"""Harmony service for nisar-py."""
+
 import argparse
 import tempfile
 from pathlib import Path
@@ -10,6 +12,8 @@ from nisar_py.gcov_rgb import make_rgb_geotiff
 
 
 class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
+    """Harmony adapter for nisar-py."""
+
     def process_item(self, item: pystac.Item, source: harmony_service_lib.message.Source | None = None) -> pystac.Item:
         """Processes a single input item.
 
@@ -27,7 +31,7 @@ class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
         """
         self.logger.info(f'Processing item {item.id}')
 
-        granule_url = get_asset_url(item, '.h5')
+        granule_url = _get_asset_url(item, '.h5')
 
         with tempfile.TemporaryDirectory() as temp_dir:
             granule_filename = harmony_service_lib.util.download(
@@ -57,7 +61,7 @@ class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
         return result
 
 
-def get_asset_url(item: pystac.Item, suffix: str) -> str:
+def _get_asset_url(item: pystac.Item, suffix: str) -> str:
     try:
         return next(asset.href for asset in item.assets.values() if asset.href.endswith(suffix))
     except StopIteration:
@@ -65,6 +69,7 @@ def get_asset_url(item: pystac.Item, suffix: str) -> str:
 
 
 def main() -> None:
+    """Run the Harmony service."""
     parser = argparse.ArgumentParser(description='Run the Harmony service')
     harmony_service_lib.setup_cli(parser)
     args = parser.parse_args()
