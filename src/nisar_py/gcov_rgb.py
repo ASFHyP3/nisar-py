@@ -1,5 +1,5 @@
 """Create RGB image from GCOV product."""
-
+from memory_profiler import profile
 import argparse
 from pathlib import Path
 
@@ -51,6 +51,7 @@ def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
         return None
 
 
+@profile
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
     """Create RGB GeoTIFF from GCOV product."""
     output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
@@ -77,8 +78,9 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
     # create an RGB raster in memory
     grid = gcov.getGeoGridParameters(frequency=frequency, polarization=copol_name)
 
-    driver = gdal.GetDriverByName('MEM')
-    raster = driver.Create('', grid.width, grid.length, 3, gdal.GDT_Byte)
+    temp_tiff = output_path / f'rgb_temp_{gcov_product.stem}_{frequency}.tiff'
+    driver = gdal.GetDriverByName('GTiff')
+    raster = driver.Create(temp_tiff, grid.width, grid.length, 3, gdal.GDT_Byte, options=['NUM_THREADS=ALL_CPUS', 'TILED=YES', 'BIGTIFF=YES'])
 
     geotransform = (
         grid.start_x, grid.spacing_x, 0,
@@ -104,7 +106,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
             band.WriteArray(channel, xoff=x_off, yoff=y_off)
             band.SetNoDataValue(0)
 
-    # write RGB raster to disk as a cloud optimized geotiff
+    # # write RGB raster to disk as a cloud optimized geotiff
     gdal.GetDriverByName('COG').CreateCopy(
         output_geotiff, raster, options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST']
     )
