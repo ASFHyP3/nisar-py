@@ -2,4 +2,11 @@
 
 NISAR data transformations.
 
-TODO: developer setup, etc.
+## Developer setup
+
+```
+mamba env create -f environment.yml
+mamba activate nisar-py
+pip install -e .
+pytest
+```
