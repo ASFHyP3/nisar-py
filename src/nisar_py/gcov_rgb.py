@@ -77,8 +77,8 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
     grid = gcov.getGeoGridParameters(frequency=frequency, polarization=copol_name)
 
     temp_tiff = output_path / f'rgb_temp_{gcov_product.stem}_{frequency}.tiff'
-    driver = gdal.GetDriverByName('GTiff')
-    raster = driver.Create(temp_tiff, grid.width, grid.length, 3, gdal.GDT_Byte, options=['NUM_THREADS=ALL_CPUS', 'TILED=YES', 'BIGTIFF=YES'])
+    driver = gdal.GetDriverByName('MEM')
+    raster = driver.Create('', grid.width, grid.length, 3, gdal.GDT_Byte)
 
     geotransform = (
         grid.start_x, grid.spacing_x, 0,
