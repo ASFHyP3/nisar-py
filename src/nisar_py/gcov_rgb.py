@@ -1,4 +1,5 @@
 """Create RGB image from GCOV product."""
+
 import argparse
 from pathlib import Path
 
@@ -80,10 +81,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
     driver = gdal.GetDriverByName('MEM')
     raster = driver.Create('', grid.width, grid.length, 3, gdal.GDT_Byte)
 
-    geotransform = (
-        grid.start_x, grid.spacing_x, 0,
-        grid.start_y, 0, grid.spacing_y
-    )
+    geotransform = (grid.start_x, grid.spacing_x, 0, grid.start_y, 0, grid.spacing_y)
     raster.SetGeoTransform(geotransform)
 
     srs = osr.SpatialReference()
