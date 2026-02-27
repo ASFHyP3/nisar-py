@@ -70,8 +70,9 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
 
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
     copol_name, crosspol_name = polarizations
-    copol = gcov.getImageDataset(frequency=frequency, polarization=copol_name)[:, :]
-    crosspol = gcov.getImageDataset(frequency=frequency, polarization=crosspol_name)[:, :]
+
+    copol_ds = gcov.getImageDataset(frequency=frequency, polarization=copol_name)
+    crosspol_ds = gcov.getImageDataset(frequency=frequency, polarization=crosspol_name)
 
     # create an RGB raster in memory
     grid = gcov.getGeoGridParameters(frequency=frequency, polarization=copol_name)
@@ -86,13 +87,19 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
     srs.ImportFromEPSG(grid.epsg)
     raster.SetProjection(srs.ExportToWkt())
 
-    copol = _prepare_geotif_data(copol)
-    crosspol = _prepare_geotif_data(crosspol)
+    for chunk in copol_ds.iter_chunks():
+        y_slice, x_slice = chunk
+        y_off, x_off = y_slice.start, x_slice.start
 
-    for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
-        channel = _calculate_color_channel(copol, crosspol, color)
-        raster.GetRasterBand(band_idx).WriteArray(channel)
-        raster.GetRasterBand(band_idx).SetNoDataValue(0)
+        copol_chunk = _prepare_geotif_data(copol_ds[chunk])
+        crosspol_chunk = _prepare_geotif_data(crosspol_ds[chunk])
+
+        for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
+            channel = _calculate_color_channel(copol_chunk, crosspol_chunk, color)
+
+            band = raster.GetRasterBand(band_idx)
+            band.WriteArray(channel, xoff=x_off, yoff=y_off)
+            band.SetNoDataValue(0)
 
     # write RGB raster to disk as a cloud optimized geotiff
     gdal.GetDriverByName('COG').CreateCopy(
