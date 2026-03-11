@@ -8,6 +8,11 @@ from nisar.products.readers import open_product
 from osgeo import gdal, osr
 
 
+class RGBDecompException(Exception):
+    """Exception for known rgb decomp errors."""
+    pass
+
+
 def _prepare_geotif_data(data: np.ndarray) -> np.ndarray:
     data = np.nan_to_num(data, copy=False)
     data[data < pow(10.0, -48.0 / 10.0)] = 0.0
@@ -51,7 +56,7 @@ def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
         return None
 
 
-def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> Path:
+def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | None = None) -> Path:
     """Create RGB GeoTIFF from GCOV product."""
     output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
 
@@ -60,13 +65,17 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str) -> P
         return output_geotiff
 
     gcov = open_product(gcov_product)
+
+    if frequency is None:
+        frequency = gcov.frequencies[0]
+
     if frequency not in gcov.frequencies:
-        raise ValueError(f'Skipping (frequency): {gcov_product.stem} does not have frequency {frequency}')
+        raise RGBDecompException(f'Skipping (frequency): {gcov_product.stem} does not have frequency {frequency}')
 
     polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
     if polarizations is None:
-        raise ValueError(f'Skipping (single-pol): {gcov_product.stem}')
+        raise RGBDecompException(f'Skipping (single-pol): {gcov_product.stem}')
 
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
     copol_name, crosspol_name = polarizations
@@ -114,7 +123,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('gcov_path', type=Path, help='Path to GCOV .h5 file')
     parser.add_argument('output_path', type=Path, help='Path to output dir', default=Path.cwd() / 'rgb_decomps')
-    parser.add_argument('frequency', choices=('A', 'B'))
+    parser.add_argument('-f', '--frequency', choices=('A', 'B'), required=False, help='Frequency to process')
     args = parser.parse_args()
 
     args.output_path.mkdir(exist_ok=True)

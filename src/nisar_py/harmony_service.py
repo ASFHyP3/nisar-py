@@ -8,7 +8,7 @@ import harmony_service_lib
 import pystac
 from harmony_service_lib.exceptions import HarmonyException
 
-from nisar_py.gcov_rgb import make_rgb_geotiff
+from nisar_py.gcov_rgb import RGBDecompException, make_rgb_geotiff
 
 
 class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
@@ -40,11 +40,16 @@ class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
                 logger=self.logger,
                 access_token=self.message.accessToken,
             )
-            rgb_path = make_rgb_geotiff(
-                gcov_product=Path(granule_filename),
-                frequency='A',
-                output_path=Path(temp_dir),
-            )
+
+            try:
+                rgb_path = make_rgb_geotiff(
+                    gcov_product=Path(granule_filename),
+                    frequency='A',
+                    output_path=Path(temp_dir),
+                )
+            except RGBDecompException as e:
+                raise HarmonyException(str(e))
+
             url = harmony_service_lib.util.stage(
                 local_filename=str(rgb_path),
                 remote_filename=rgb_path.name,
