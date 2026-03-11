@@ -44,11 +44,12 @@ class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
             try:
                 rgb_path = make_rgb_geotiff(
                     gcov_product=Path(granule_filename),
-                    frequency='A',
                     output_path=Path(temp_dir),
                 )
             except RGBDecompException as e:
                 raise HarmonyException(str(e))
+            except Exception:
+                raise HarmonyException(f'An unknown error occured when processing {granule_filename}')
 
             url = harmony_service_lib.util.stage(
                 local_filename=str(rgb_path),
