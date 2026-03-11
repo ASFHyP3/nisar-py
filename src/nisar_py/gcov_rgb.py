@@ -10,6 +10,7 @@ from osgeo import gdal, osr
 
 class RGBDecompException(Exception):
     """Exception for known rgb decomp errors."""
+
     pass
 
 
