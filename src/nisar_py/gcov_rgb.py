@@ -71,12 +71,12 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
         frequency = gcov.frequencies[0]
 
     elif frequency not in gcov.frequencies:
-        raise RGBDecompException(f'Skipping (frequency): {gcov_product.stem} does not have frequency {frequency}')
+        raise RGBDecompException(f'{gcov_product.stem} does not have frequency {frequency}')
 
     polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
     if polarizations is None:
-        raise RGBDecompException(f'Skipping (single-pol): {gcov_product.stem}')
+        raise RGBDecompException(f'{gcov_product.stem} is single-pol')
 
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
     copol_name, crosspol_name = polarizations
