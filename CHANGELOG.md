@@ -9,7 +9,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.1.2]
 
 ### Changed
-- `frequency` is now an optional argument and the highest available frequency is chosen
+- `frequency` is now an optional argument and the first available frequency is chosen
 - Errors from `gcov_rgb.make_rgb_geotiff` in `harmony_service.py` are now raised as `HarmonyException` to show nice error messages
 
 ## [0.1.1]
