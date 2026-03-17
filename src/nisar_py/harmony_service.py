@@ -48,8 +48,6 @@ class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
                 )
             except RGBDecompException as e:
                 raise HarmonyException(str(e))
-            except Exception:
-                raise HarmonyException(f'An unknown error occured when processing {granule_filename}')
 
             url = harmony_service_lib.util.stage(
                 local_filename=str(rgb_path),
