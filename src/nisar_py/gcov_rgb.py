@@ -124,7 +124,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('gcov_path', type=Path, help='Path to GCOV .h5 file')
     parser.add_argument('output_path', type=Path, help='Path to output dir', default=Path.cwd() / 'rgb_decomps')
-    parser.add_argument('-f', '--frequency', choices=('A', 'B'), required=False, help='Frequency to process')
+    parser.add_argument('-f', '--frequency', choices=('A', 'B'), help='Frequency to process')
     args = parser.parse_args()
 
     args.output_path.mkdir(exist_ok=True)
