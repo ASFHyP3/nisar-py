@@ -76,7 +76,9 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
     polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
     if polarizations is None:
-        raise RGBDecompException(f'{gcov_product.stem} is single-pol')
+        raise RGBDecompException(
+            f'{gcov_product.stem} frequency {frequency} is single-pol. RGB decomp requires dual-pol or quad-pol.'
+        )
 
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
     copol_name, crosspol_name = polarizations
