@@ -31,8 +31,6 @@ make_rgb_geotiff(
 )
 ```
 
-TODO: give download link for the h5 product or mention that it must be downloaded?
-
 The above example produces an image like the one below:
 
 ![gcov_rgb_example.png](./gcov_rgb_example.png "GCOV RGB example image")
