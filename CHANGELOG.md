@@ -12,7 +12,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added example command and background information for [`nisar_py.gcov_rgb`](./src/nisar_py/gcov_rgb.py) to the [README](./README.md).
 
 ### Fixed
-- Fixed a bug in [`gcov_rgb.make_rgb_geotiff`] in which `_None` was appended to the output GeoTIFF name when the `frequency` parameter was not given. The frequency is now always appended, e.g. `_A` or `_B`.
+- Fixed a bug in `gcov_rgb.make_rgb_geotiff` in which `_None` was appended to the output GeoTIFF name when the `frequency` parameter was not given. The frequency is now always appended, e.g. `_A` or `_B`.
 
 ## [0.1.2]
 
