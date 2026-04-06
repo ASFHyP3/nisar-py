@@ -42,19 +42,23 @@ def _calculate_color_channel(
 
     channel = channel * scale_factor + 1.0
 
-    invalid_crosspol_mask = ~(crosspol > 0)
-    channel[invalid_crosspol_mask] = 0.0
+    invalid_copol_mask = ~(copol > 0)
+    channel[invalid_copol_mask] = 0.0
 
     return channel
 
 
-def _get_polarization_names(pols: list[str]) -> tuple[str, str] | None:
+def _get_polarization_names(pols: list[str]) -> tuple[str | None, str | None]:
     if 'HH' in pols and 'HV' in pols:
         return 'HHHH', 'HVHV'
     elif 'VV' in pols and 'VH' in pols:
         return 'VVVV', 'VHVH'
+    elif 'HH' in pols:
+        return 'HHHH', None
+    elif 'VV' in pols:
+        return 'VVVV', None
     else:
-        return None
+        return None, None
 
 
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | None = None) -> Path:
@@ -75,16 +79,14 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
 
     polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
-    if polarizations is None:
-        raise RGBDecompException(
-            f'{gcov_product.stem} frequency {frequency} is single-pol. RGB decomp requires dual-pol or quad-pol.'
-        )
-
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
     copol_name, crosspol_name = polarizations
 
     copol_ds = gcov.getImageDataset(frequency=frequency, polarization=copol_name)
-    crosspol_ds = gcov.getImageDataset(frequency=frequency, polarization=crosspol_name)
+    if crosspol_name:
+        crosspol_ds = gcov.getImageDataset(frequency=frequency, polarization=crosspol_name)
+    else:
+        crosspol_ds = None
 
     # create an RGB raster in memory
     grid = gcov.getGeoGridParameters(frequency=frequency, polarization=copol_name)
@@ -104,7 +106,11 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
         y_off, x_off = y_slice.start, x_slice.start
 
         copol_chunk = _prepare_geotif_data(copol_ds[chunk])
-        crosspol_chunk = _prepare_geotif_data(crosspol_ds[chunk])
+        if crosspol_ds:
+            crosspol_chunk = _prepare_geotif_data(crosspol_ds[chunk])
+        else:
+            crosspol_chunk = np.zeros_like(copol_ds[chunk])
+            crosspol_chunk[copol_chunk>0.04] = 0.01
 
         for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
             channel = _calculate_color_channel(copol_chunk, crosspol_chunk, color)
