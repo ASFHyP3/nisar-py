@@ -109,8 +109,9 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
         if crosspol_ds:
             crosspol_chunk = _prepare_geotif_data(crosspol_ds[chunk])
         else:
-            crosspol_chunk = np.zeros_like(copol_ds[chunk])
-            crosspol_chunk[copol_chunk>0.04] = 0.01
+            crosspol_chunk = copol_chunk * 0.1
+            crosspol_chunk[copol_chunk<=0.4] = copol_chunk[copol_chunk<=0.4] * 0.25
+            crosspol_chunk[copol_chunk<=0.04] = 0
 
         for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
             channel = _calculate_color_channel(copol_chunk, crosspol_chunk, color)
