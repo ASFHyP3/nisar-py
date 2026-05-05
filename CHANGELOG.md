@@ -8,9 +8,12 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.2]
 
+### Added
+- Added example command and background information for [`nisar_py.gcov_rgb`](./src/nisar_py/gcov_rgb.py) to the [README](./README.md).
+
 ### Changed
-- `frequency` is now an optional argument and the first available frequency is chosen
-- Errors for invalid input granules are now raised as `HarmonyException` to show nice error messages
+- `frequency` is now an optional argument for `gcov_rgb.make_rgb_geotiff` and the first available frequency is chosen.
+- Errors for invalid input granules are now raised as `HarmonyException` to show nice error messages.
 
 ## [0.1.1]
 

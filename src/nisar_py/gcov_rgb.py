@@ -63,12 +63,6 @@ def _get_polarization_names(pols: list[str]) -> tuple[str | None, str | None]:
 
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | None = None) -> Path:
     """Create RGB GeoTIFF from GCOV product."""
-    output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
-
-    if output_geotiff.exists():
-        print(f'Skipping (exists): already Exists {output_geotiff.name}')
-        return output_geotiff
-
     gcov = open_product(gcov_product)
 
     if frequency is None:
@@ -76,6 +70,12 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
 
     elif frequency not in gcov.frequencies:
         raise RGBDecompException(f'{gcov_product.stem} does not have frequency {frequency}')
+
+    output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
+
+    if output_geotiff.exists():
+        print(f'Skipping because output product already exists: {output_geotiff}')
+        return output_geotiff
 
     polarizations = _get_polarization_names(gcov.polarizations[frequency])
 
