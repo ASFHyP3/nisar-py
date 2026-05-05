@@ -49,16 +49,19 @@ def _calculate_color_channel(
 
 
 def _get_polarization_names(pols: list[str]) -> tuple[str | None, str | None]:
-    if 'HH' in pols and 'HV' in pols:
-        return 'HHHH', 'HVHV'
-    elif 'VV' in pols and 'VH' in pols:
-        return 'VVVV', 'VHVH'
-    elif 'HH' in pols:
-        return 'HHHH', None
+    copol, crosspol = None, None
+
+    if 'HH' in pols:
+        copol = 'HHHH'
     elif 'VV' in pols:
-        return 'VVVV', None
-    else:
-        return None, None
+        copol = 'VVVV'
+
+    if 'HV' in pols:
+        crosspol = 'HVHV'
+    elif 'VH' in pols:
+        crosspol = 'VHVH'
+
+    return copol, crosspol
 
 
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | None = None) -> Path:
@@ -77,10 +80,11 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
         print(f'Skipping because output product already exists: {output_geotiff}')
         return output_geotiff
 
-    polarizations = _get_polarization_names(gcov.polarizations[frequency])
-
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
-    copol_name, crosspol_name = polarizations
+    copol_name, crosspol_name = _get_polarization_names(gcov.polarizations[frequency])
+
+    if copol_name is None:
+        raise RGBDecompException(f'{gcov_product} has no copol data for frequency {frequency}')
 
     copol_ds = gcov.getImageDataset(frequency=frequency, polarization=copol_name)
     if crosspol_name:
