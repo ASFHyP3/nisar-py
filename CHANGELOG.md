@@ -8,6 +8,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.2.0]
 
+### Added
 - Added support for generating RGB geotiffs from single-pol GCOV granules
 
 ## [0.1.2]
