@@ -84,7 +84,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
     copol_name, crosspol_name = _get_polarization_names(gcov.polarizations[frequency])
 
     if copol_name is None:
-        raise RGBDecompException(f'{gcov_product} has no copol data for frequency {frequency}')
+        raise RGBDecompException(f'{gcov_product.stem} has no copol data for frequency {frequency}')
 
     copol_ds = gcov.getImageDataset(frequency=frequency, polarization=copol_name)
     if crosspol_name:
