@@ -126,7 +126,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
 
     # write RGB raster to disk as a cloud optimized geotiff
     gdal.GetDriverByName('COG').CreateCopy(
-        output_geotiff, raster, options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST']
+        output_geotiff, raster, options=['NUM_THREADS=ALL_CPUS', 'BIGTIFF=YES', 'RESAMPLING=NEAREST', 'OVERVIEWS=NONE']
     )
 
     return output_geotiff

@@ -14,7 +14,7 @@ pytest
 ## GCOV RGB
 
 The [`nisar_py.gcov_rgb`](./src/nisar_py/gcov_rgb.py) module converts a dual-pol or quad-pol GCOV product
-to a false color RGB decomposition of the co- and cross-polarized data in Cloud Optimized GeoTIFF format,
+to a false color RGB decomposition of the co- and cross-polarized data in Cloud Optimized GeoTIFF format (without overviews),
 and was adapted from [`hyp3lib.rtc2color`](https://github.com/ASFHyP3/hyp3-lib/blob/develop/src/hyp3lib/rtc2color.py). 
 Quad-pol GCOV products will use HH and HV for the co- and cross-polarized data inputs. 
 The RGB decomposition algorithm is described [here](https://github.com/ASFHyP3/hyp3-lib/blob/develop/docs/rgb_decomposition.md). 
