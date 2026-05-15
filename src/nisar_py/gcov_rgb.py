@@ -4,8 +4,11 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-from nisar.products.readers import open_product
+import xarray as xr
 from osgeo import gdal, osr
+
+
+gdal.UseExceptions()
 
 
 class RGBDecompException(Exception):
@@ -66,12 +69,16 @@ def _get_polarization_names(pols: list[str]) -> tuple[str | None, str | None]:
 
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | None = None) -> Path:
     """Create RGB GeoTIFF from GCOV product."""
-    gcov = open_product(gcov_product)
+    gcov = xr.open_datatree(gcov_product)
+    grids =gcov.science.LSAR.GCOV.grids
 
     if frequency is None:
-        frequency = gcov.frequencies[0]
+        if 'frequencyA' in grids:
+            frequency = 'A'
+        else:
+            frequency = 'B'
 
-    elif frequency not in gcov.frequencies:
+    elif f'frequency{frequency}' not in grids:
         raise RGBDecompException(f'{gcov_product.stem} does not have frequency {frequency}')
 
     output_geotiff = output_path / f'rgb_{gcov_product.stem}_{frequency}.tiff'
@@ -81,48 +88,50 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
         return output_geotiff
 
     print(f'Generating rgb for freq {frequency} for {gcov_product.name}')
-    copol_name, crosspol_name = _get_polarization_names(gcov.polarizations[frequency])
+    frequency_group = grids[f'frequency{frequency}']
+    copol_name, crosspol_name = _get_polarization_names(frequency_group.listOfPolarizations.values.astype(str))
 
     if copol_name is None:
         raise RGBDecompException(f'{gcov_product.stem} has no copol data for frequency {frequency}')
 
-    copol_ds = gcov.getImageDataset(frequency=frequency, polarization=copol_name)
+    copol_ds = frequency_group[copol_name]
     if crosspol_name:
-        crosspol_ds = gcov.getImageDataset(frequency=frequency, polarization=crosspol_name)
+        crosspol_ds = frequency_group[crosspol_name]
     else:
         crosspol_ds = None
 
     # create an RGB raster in memory
-    grid = gcov.getGeoGridParameters(frequency=frequency, polarization=copol_name)
+    xmin = frequency_group.xCoordinates.min()
+    xres = frequency_group.xCoordinateSpacing.values
+    ymax = frequency_group.yCoordinates.max()
+    yres = frequency_group.yCoordinateSpacing.values
+    width = copol_ds.shape[0]
+    length = copol_ds.shape[1]
 
     driver = gdal.GetDriverByName('MEM')
-    raster = driver.Create('', grid.width, grid.length, 3, gdal.GDT_Byte)
+    raster = driver.Create('', length, width, 3, gdal.GDT_Byte)
 
-    geotransform = (grid.start_x, grid.spacing_x, 0, grid.start_y, 0, grid.spacing_y)
+    geotransform = (xmin - xres / 2, xres, 0, ymax - yres / 2, 0, yres)
     raster.SetGeoTransform(geotransform)
 
     srs = osr.SpatialReference()
-    srs.ImportFromEPSG(grid.epsg)
+    srs.ImportFromEPSG(int(frequency_group.projection.epsg_code))
     raster.SetProjection(srs.ExportToWkt())
 
-    for chunk in copol_ds.iter_chunks():
-        y_slice, x_slice = chunk
-        y_off, x_off = y_slice.start, x_slice.start
+    copol_chunk = _prepare_geotif_data(copol_ds)
+    if crosspol_ds is not None:
+        crosspol_chunk = _prepare_geotif_data(crosspol_ds)
+    else:
+        crosspol_chunk = copol_chunk * 0.1
+        crosspol_chunk[copol_chunk <= 0.4] = copol_chunk[copol_chunk <= 0.4] * 0.0555555556 + 0.0177777778
+        crosspol_chunk[copol_chunk <= 0.04] = 0
 
-        copol_chunk = _prepare_geotif_data(copol_ds[chunk])
-        if crosspol_ds:
-            crosspol_chunk = _prepare_geotif_data(crosspol_ds[chunk])
-        else:
-            crosspol_chunk = copol_chunk * 0.1
-            crosspol_chunk[copol_chunk <= 0.4] = copol_chunk[copol_chunk <= 0.4] * 0.0555555556 + 0.0177777778
-            crosspol_chunk[copol_chunk <= 0.04] = 0
+    for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
+        channel = _calculate_color_channel(copol_chunk, crosspol_chunk, color)
 
-        for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
-            channel = _calculate_color_channel(copol_chunk, crosspol_chunk, color)
-
-            band = raster.GetRasterBand(band_idx)
-            band.WriteArray(channel, xoff=x_off, yoff=y_off)
-            band.SetNoDataValue(0)
+        band = raster.GetRasterBand(band_idx)
+        band.WriteArray(channel)
+        band.SetNoDataValue(0)
 
     # write RGB raster to disk as a cloud optimized geotiff
     gdal.GetDriverByName('COG').CreateCopy(
