@@ -1,8 +1,8 @@
-from tempfile import NamedTemporaryFile
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import pytest
-from xarray import DataTree, Dataset, DataArray, Variable
+from xarray import DataArray, DataTree, Dataset, Variable
 
 
 @pytest.fixture
@@ -12,8 +12,7 @@ def test_data_dir():
 
 @pytest.fixture
 def mock_gcov_granule():
-    """
-    Creates a mock gcov .h5 granule with sufficient data to be opened and read by ISCE3.
+    """Creates a mock gcov .h5 granule with sufficient data to be opened and read by ISCE3.
 
     frequencyA contains a 1000x512 HHHH raster with pixel values corresponding to the X coordinate of the pixel
 
