@@ -1,5 +1,4 @@
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 import pytest
 from xarray import DataArray, DataTree, Dataset, Variable
