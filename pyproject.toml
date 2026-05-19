@@ -20,9 +20,15 @@ classifiers=[
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
-# FIXME: isce3 is not pip-installable, so dependencies may not serve a purpose here
-# dependencies = []
+dependencies = [
+    "gdal",
+    "harmony-service-lib",
+    "numpy",
+    "pystac",
+    "xarray",
+]
 dynamic = ["version"]
 
 [project.optional-dependencies]
@@ -32,7 +38,6 @@ develop = [
     "pytest",
     "pytest-console-scripts",
     "pytest-cov",
-    "xarray",
 ]
 
 [project.urls]

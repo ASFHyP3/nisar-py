@@ -70,7 +70,7 @@ def _get_polarization_names(pols: list[str]) -> tuple[str | None, str | None]:
 def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | None = None) -> Path:
     """Create RGB GeoTIFF from GCOV product."""
     gcov = xr.open_datatree(gcov_product)
-    grids =gcov.science.LSAR.GCOV.grids
+    grids = gcov.science.LSAR.GCOV.grids
 
     if frequency is None:
         if 'frequencyA' in grids:
@@ -115,7 +115,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
     raster.SetGeoTransform(geotransform)
 
     srs = osr.SpatialReference()
-    srs.ImportFromEPSG(int(frequency_group.projection.epsg_code))
+    srs.ImportFromEPSG(int(frequency_group.projection.values))
     raster.SetProjection(srs.ExportToWkt())
 
     copol_chunk = _prepare_geotif_data(copol_ds)

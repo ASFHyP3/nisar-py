@@ -9,8 +9,6 @@ dependencies:
   - setuptools_scm
   - pytest
   - pytest-cov
-  - xarray
-  - h5netcdf
   # For running
   - gdal
   - numpy
