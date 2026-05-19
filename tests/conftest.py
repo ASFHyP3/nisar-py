@@ -11,7 +11,7 @@ def test_data_dir():
 
 
 @pytest.fixture
-def mock_gcov_granule():
+def mock_gcov_granule(tmp_path):
     """Creates a mock gcov .h5 granule with sufficient data to be opened and read by ISCE3.
 
     frequencyA contains a 1000x512 HHHH raster with pixel values corresponding to the X coordinate of the pixel
@@ -84,17 +84,17 @@ def mock_gcov_granule():
         },
     )
 
-    with NamedTemporaryFile() as temp_file:
-        dt.to_netcdf(
-            filepath=temp_file.name,
-            encoding={
-                '/science/LSAR/GCOV/grids/frequencyA': {
-                    'HHHH': {'chunksizes': (512, 512), 'compression': 'gzip'},
-                },
-                '/science/LSAR/GCOV/grids/frequencyB': {
-                    'VVVV': {'chunksizes': (512, 512), 'compression': 'gzip'},
-                    'VHVH': {'chunksizes': (512, 512), 'compression': 'gzip'},
-                },
+    output_path = tmp_path / 'mock_gcov_granule.h5'
+    dt.to_netcdf(
+        filepath=output_path,
+        encoding={
+            '/science/LSAR/GCOV/grids/frequencyA': {
+                'HHHH': {'chunksizes': (512, 512), 'compression': 'gzip'},
             },
-        )
-        yield Path(temp_file.name)
+            '/science/LSAR/GCOV/grids/frequencyB': {
+                'VVVV': {'chunksizes': (512, 512), 'compression': 'gzip'},
+                'VHVH': {'chunksizes': (512, 512), 'compression': 'gzip'},
+            },
+        },
+    )
+    return output_path
