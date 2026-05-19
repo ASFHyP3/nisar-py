@@ -9,6 +9,8 @@ dependencies:
   - setuptools_scm
   - pytest
   - pytest-cov
+  - xarray
+  - h5netcdf
   # For running
   - isce3
   - libgdal-hdf5

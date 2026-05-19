@@ -33,6 +33,7 @@ develop = [
     "pytest",
     "pytest-console-scripts",
     "pytest-cov",
+    "xarray",
 ]
 
 [project.urls]
