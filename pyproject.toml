@@ -23,9 +23,9 @@ classifiers=[
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
+    "dask",
     "gdal",
     "harmony-service-lib",
-    "numpy",
     "pystac",
     "xarray",
 ]

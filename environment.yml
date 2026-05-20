@@ -10,8 +10,8 @@ dependencies:
   - pytest
   - pytest-cov
   # For running
+  - dask
   - gdal
-  - numpy
   - pystac
   - xarray
   - h5netcdf
