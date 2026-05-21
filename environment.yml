@@ -12,6 +12,7 @@ dependencies:
   - xarray
   - h5netcdf
   # For running
+  - gdal
   - isce3
   - libgdal-hdf5
   - numpy
