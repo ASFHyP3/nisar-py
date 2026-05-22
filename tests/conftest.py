@@ -19,8 +19,8 @@ def mock_gcov_granule(tmp_path):
     and a VHVH raster with pixel values corresponding to the Y coordinate of the pixel.
     """
     step_size = 0.001
-    x_cooridnates = [ii * step_size for ii in range(0, 1000, 1)]
-    y_coorindates = [ii * step_size for ii in range(512, 0, -1)]
+    x_coordinates = [ii * step_size for ii in range(0, 1000, 1)]
+    y_coordinates = [ii * step_size for ii in range(512, 0, -1)]
 
     dt = DataTree.from_dict(
         {
@@ -28,10 +28,14 @@ def mock_gcov_granule(tmp_path):
                 {
                     'HHHH': Variable(
                         dims=('yCoordinates', 'xCoordinates'),
-                        data=[[x for x in x_cooridnates] for y in y_coorindates],
+                        data=[[x for x in x_coordinates] for y in y_coordinates],
                     ).astype('float32'),
-                    'xCoordinates': x_cooridnates,
-                    'yCoordinates': y_coorindates,
+                    'mask': Variable(
+                        dims=('yCoordinates', 'xCoordinates'),
+                        data=[[0.0 if x == y else 1.0 for x in x_coordinates] for y in y_coordinates],
+                    ).astype('float32'),
+                    'xCoordinates': x_coordinates,
+                    'yCoordinates': y_coordinates,
                     'xCoordinateSpacing': step_size,
                     'yCoordinateSpacing': -step_size,
                     'listOfPolarizations': (
@@ -45,14 +49,18 @@ def mock_gcov_granule(tmp_path):
                 {
                     'VVVV': Variable(
                         dims=('yCoordinates', 'xCoordinates'),
-                        data=[[x for x in x_cooridnates] for y in y_coorindates],
+                        data=[[x for x in x_coordinates] for y in y_coordinates],
                     ).astype('float32'),
                     'VHVH': Variable(
                         dims=('yCoordinates', 'xCoordinates'),
-                        data=[[y for x in x_cooridnates] for y in y_coorindates],
+                        data=[[y for x in x_coordinates] for y in y_coordinates],
                     ).astype('float32'),
-                    'xCoordinates': x_cooridnates,
-                    'yCoordinates': y_coorindates,
+                    'mask': Variable(
+                        dims=('yCoordinates', 'xCoordinates'),
+                        data=[[255.0 if x == y else 2.0 for x in x_coordinates] for y in y_coordinates],
+                    ).astype('float32'),
+                    'xCoordinates': x_coordinates,
+                    'yCoordinates': y_coordinates,
                     'xCoordinateSpacing': step_size,
                     'yCoordinateSpacing': -step_size,
                     'listOfPolarizations': (

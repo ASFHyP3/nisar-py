@@ -14,17 +14,16 @@ class RGBDecompException(Exception):
     pass
 
 
-def _prepare_geotif_data(data: np.ndarray) -> np.ndarray:
-    data = np.nan_to_num(data, copy=False)
-    data[data < pow(10.0, -48.0 / 10.0)] = 0.0
-    return data
-
-
 def _calculate_color_channel(
-    copol: np.ndarray, crosspol: np.ndarray, color: str, threshold: float = -24, scale_factor: float = 254.0
+    copol: np.ndarray,
+    crosspol: np.ndarray,
+    invalid_pixels: np.ndarray,
+    color: str,
 ) -> np.ndarray:
-    power_threshold = 10.0 ** (threshold / 10.0)
-    below_threshold_mask = crosspol < power_threshold
+    copol = np.nan_to_num(copol)
+    crosspol = np.nan_to_num(crosspol)
+
+    below_threshold_mask = crosspol < 0.003981071705534973  # -24 dB
 
     zp = np.arctan(np.sqrt(np.clip(copol - crosspol, 0, None))) * (2.0 / np.pi)
     zp[~below_threshold_mask] = 0.0
@@ -40,10 +39,9 @@ def _calculate_color_channel(
     elif color == 'blue':
         channel = 5.0 * zp
 
-    channel = channel * scale_factor + 1.0
-
-    invalid_copol_mask = ~(copol > 0)
-    channel[invalid_copol_mask] = 0.0
+    channel = channel * 254.0 + 1.0
+    channel = np.clip(channel, 0, 255).astype('uint8')
+    channel[invalid_pixels] = 0
 
     return channel
 
@@ -91,6 +89,7 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
         crosspol_ds = gcov.getImageDataset(frequency=frequency, polarization=crosspol_name)
     else:
         crosspol_ds = None
+    mask = gcov.getImageDataset(frequency=frequency, polarization='mask')
 
     # create an RGB raster in memory
     grid = gcov.getGeoGridParameters(frequency=frequency, polarization=copol_name)
@@ -109,16 +108,19 @@ def make_rgb_geotiff(gcov_product: Path, output_path: Path, frequency: str | Non
         y_slice, x_slice = chunk
         y_off, x_off = y_slice.start, x_slice.start
 
-        copol_chunk = _prepare_geotif_data(copol_ds[chunk])
+        copol_chunk = copol_ds[chunk]
+
         if crosspol_ds:
-            crosspol_chunk = _prepare_geotif_data(crosspol_ds[chunk])
+            crosspol_chunk = crosspol_ds[chunk]
         else:
             crosspol_chunk = copol_chunk * 0.1
             crosspol_chunk[copol_chunk <= 0.4] = copol_chunk[copol_chunk <= 0.4] * 0.0555555556 + 0.0177777778
             crosspol_chunk[copol_chunk <= 0.04] = 0
 
+        invalid_pixels = np.isin(mask[chunk], [0, 255])
+
         for band_idx, color in enumerate(('red', 'green', 'blue'), start=1):
-            channel = _calculate_color_channel(copol_chunk, crosspol_chunk, color)
+            channel = _calculate_color_channel(copol_chunk, crosspol_chunk, invalid_pixels, color)
 
             band = raster.GetRasterBand(band_idx)
             band.WriteArray(channel, xoff=x_off, yoff=y_off)
