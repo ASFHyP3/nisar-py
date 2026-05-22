@@ -15,7 +15,10 @@ class RGBDecompException(Exception):
 
 
 def _calculate_color_channel(
-        copol: np.ndarray, crosspol: np.ndarray, invalid_pixels: np.ndarray, color: str,
+    copol: np.ndarray,
+    crosspol: np.ndarray,
+    invalid_pixels: np.ndarray,
+    color: str,
 ) -> np.ndarray:
     copol = np.nan_to_num(copol)
     crosspol = np.nan_to_num(crosspol)

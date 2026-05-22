@@ -50,8 +50,8 @@ def test_create_color_channel():
     assert np.all(calc(copol, crosspol, invalid_pixels, 'green') == [33, 0, 56, 72])
     assert np.all(calc(copol, crosspol, invalid_pixels, 'blue') == [81, 0, 139, 178])
 
-    copol = np.array([0.02, 0.04, 0.06, .1])
-    crosspol = np.array([0.002, 0.004, 0.006, .01])
+    copol = np.array([0.02, 0.04, 0.06, 0.1])
+    crosspol = np.array([0.002, 0.004, 0.006, 0.01])
     invalid_pixels = np.array([False, False, False, False])
 
     assert np.all(calc(copol, crosspol, invalid_pixels, 'red') == [22, 86, 105, 135])
