@@ -30,6 +30,10 @@ def mock_gcov_granule(tmp_path):
                         dims=('yCoordinates', 'xCoordinates'),
                         data=[[x for x in x_cooridnates] for y in y_coorindates],
                     ).astype('float32'),
+                    'mask': Variable(
+                        dims=('yCoordinates', 'xCoordinates'),
+                        data=[[0.0 if x == y else 1.0 for x in x_cooridnates] for y in y_coorindates],
+                    ).astype('float32'),
                     'xCoordinates': x_cooridnates,
                     'yCoordinates': y_coorindates,
                     'xCoordinateSpacing': step_size,
@@ -50,6 +54,10 @@ def mock_gcov_granule(tmp_path):
                     'VHVH': Variable(
                         dims=('yCoordinates', 'xCoordinates'),
                         data=[[y for x in x_cooridnates] for y in y_coorindates],
+                    ).astype('float32'),
+                    'mask': Variable(
+                        dims=('yCoordinates', 'xCoordinates'),
+                        data=[[255.0 if x == y else 2.0 for x in x_cooridnates] for y in y_coorindates],
                     ).astype('float32'),
                     'xCoordinates': x_cooridnates,
                     'yCoordinates': y_coorindates,
