@@ -9,6 +9,7 @@ import pystac
 from harmony_service_lib.exceptions import HarmonyException
 
 from nisar_py.gcov_rgb import RGBDecompException, make_rgb_geotiff
+from nisar_py.polar_reprojection import reproject_geotiff, ReprojectionException
 
 
 class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
@@ -47,6 +48,14 @@ class HarmonyAdapter(harmony_service_lib.BaseHarmonyAdapter):
                     output_path=Path(temp_dir),
                 )
             except RGBDecompException as e:
+                raise HarmonyException(str(e))
+
+            try:
+                rgb_path = reproject_geotiff(
+                    gcov_product=rgb_path,
+                    output_path=Path(temp_dir),
+                )
+            except ReprojectionException as e:
                 raise HarmonyException(str(e))
 
             url = harmony_service_lib.util.stage(
